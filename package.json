@@ -1,0 +1,25 @@
+{
+  "name": "gestion-notas-curso",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Aplicación para transformar nóminas de estudiantes a Excel moderno y generar planillas de notas con evaluaciones configurables (escala chilena 1,0 - 7,0).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}
