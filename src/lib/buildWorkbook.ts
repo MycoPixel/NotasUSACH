@@ -1,17 +1,11 @@
 import type ExcelJSType from 'exceljs'
-import type { CourseInfo, Evaluation, ParsedRoster } from '../types'
+import type { CourseInfo, CourseSettings, Evaluation, ParsedRoster } from '../types'
 import { columnLetter } from './excelColumns'
 import { DEFAULT_ACCENT } from './palette'
 
 const HEADER_TEXT_ARGB = 'FFFFFFFF'
 const APPROVED_FILL = 'FFD9EAD3'
 const FAILED_FILL = 'FFF4CCCC'
-const PASSING_GRADE = 4
-// Con el redondeo estándar chileno (a la décima, hacia arriba desde la
-// centésima 5), un promedio real de 3,95 ya redondea a 4,0. Por eso el
-// umbral de aprobación efectivo, aplicado sobre el promedio sin redondear,
-// es 3,95 y no 4,0 — ver https://escaladenotas.cl/
-const PASSING_RAW_THRESHOLD = PASSING_GRADE - 0.05
 const HEADER_ROW = 5
 const MIN_COL_WIDTH = 10
 const MAX_COL_WIDTH = 42
@@ -23,7 +17,7 @@ interface EvalColumnRange {
   evaluation: Evaluation
   /** Columna (0-based) que representa la nota final de esta evaluación:
    * la única columna si no tiene subdivisiones, o la de promedio si las
-   * tiene. Esta es la columna que participa en el promedio ponderado. */
+   * tiene. */
   scoreColIndex: number
   subStart?: number
   subEnd?: number
@@ -40,11 +34,12 @@ export interface BuildWorkbookResult {
 }
 
 /** Genera la planilla final: nómina original + columnas de evaluaciones
- * (vacías, listas para llenar) + promedio ponderado + estado, con fórmulas
- * y validaciones ya aplicadas. */
+ * (vacías, listas para llenar) + Presentación/Examen/PAR-POR si corresponde
+ * + promedio final + estado, con fórmulas y validaciones ya aplicadas. */
 export async function buildWorkbook(
   roster: ParsedRoster,
   evaluations: Evaluation[],
+  courseSettings: CourseSettings,
   options: BuildWorkbookOptions = {},
 ): Promise<BuildWorkbookResult> {
   if (evaluations.length === 0) {
@@ -55,6 +50,20 @@ export async function buildWorkbook(
       throw new Error(`Falta el porcentaje de la evaluación "${ev.name || 'sin nombre'}".`)
     }
   }
+  const assessment = courseSettings.finalAssessment
+  if (assessment?.type === 'examen' && assessment.weight == null) {
+    throw new Error('Falta el porcentaje del examen.')
+  }
+  if (assessment?.type === 'parpor' && assessment.eligibleEvaluationIds.length === 0) {
+    throw new Error('Marca al menos una evaluación que el PAR/POR pueda reemplazar.')
+  }
+
+  const passingGrade = courseSettings.passingGrade
+  // Con el redondeo estándar chileno (a la décima, hacia arriba desde la
+  // centésima 5), un promedio real de X,95 ya redondea a (X+1),0. Por eso el
+  // umbral de aprobación efectivo, aplicado sobre el promedio sin redondear,
+  // es (nota mínima - 0,05) — ver https://escaladenotas.cl/
+  const passingRawThreshold = passingGrade - 0.05
 
   const accentArgb = `FF${(options.accentColor || DEFAULT_ACCENT).replace('#', '').toUpperCase()}`
 
@@ -72,21 +81,10 @@ export async function buildWorkbook(
 
   writeCourseHeader(sheet, roster)
 
-  const { headers, evalRanges, finalColIndex, statusColIndex } = buildColumnPlan(
-    roster.headers,
-    evaluations,
-  )
+  const plan = buildColumnPlan(roster.headers, evaluations, courseSettings)
   const baseColCount = roster.headers.length
-  const allWeightsEqual =
-    evalRanges.length > 1 &&
-    evalRanges.every(
-      (r) =>
-        Math.abs(
-          (r.evaluation.weight as number) - (evalRanges[0].evaluation.weight as number),
-        ) < WEIGHT_EQUALITY_TOLERANCE,
-    )
 
-  headers.forEach((label, idx) => {
+  plan.headers.forEach((label, idx) => {
     const cell = sheet.getRow(HEADER_ROW).getCell(idx + 1)
     cell.value = label
     cell.font = { bold: true, color: { argb: HEADER_TEXT_ARGB }, name: 'IBM Plex Sans' }
@@ -103,7 +101,7 @@ export async function buildWorkbook(
       row.getCell(colIdx + 1).value = value
     })
 
-    evalRanges.forEach((range) => {
+    plan.evalRanges.forEach((range) => {
       if (range.subStart !== undefined && range.subEnd !== undefined) {
         for (let c = range.subStart; c <= range.subEnd; c++) {
           applyGradeCell(row.getCell(c + 1))
@@ -121,46 +119,84 @@ export async function buildWorkbook(
       }
     })
 
-    const scoreRefs = evalRanges.map((r) => `${columnLetter(r.scoreColIndex)}${excelRow}`)
-    // Cuando todas las evaluaciones pesan lo mismo, un promedio simple es
-    // matemáticamente idéntico a la suma ponderada, pero se lee mucho más
-    // claro en la fórmula (y evita mostrar pesos como 33/33/34 sólo para
-    // que sumen 100 exacto).
-    const combinedFormula = allWeightsEqual
-      ? `AVERAGE(${scoreRefs.join(',')})`
-      : evalRanges
-          .map(
-            (r) =>
-              `${columnLetter(r.scoreColIndex)}${excelRow}*${(r.evaluation.weight as number) / 100}`,
-          )
-          .join('+')
+    const scoreRefs = plan.evalRanges.map((r) => `${columnLetter(r.scoreColIndex)}${excelRow}`)
+    const ppRawOriginal = buildPresentacionExpr(plan.evalRanges, scoreRefs)
+    const completenessGuard = `COUNT(${scoreRefs.join(',')})<${scoreRefs.length}`
 
-    const finalCell = row.getCell(finalColIndex + 1)
-    finalCell.value = {
-      formula: `IF(COUNT(${scoreRefs.join(',')})<${scoreRefs.length},"",ROUND(${combinedFormula},1))`,
+    if (!plan.assessmentPlan) {
+      // Curso simple: sin examen ni PAR/POR, el promedio de las
+      // evaluaciones ES el promedio final (comportamiento de siempre).
+      const finalCell = row.getCell(plan.finalColIndex + 1)
+      finalCell.value = { formula: `IF(${completenessGuard},"",ROUND(${ppRawOriginal},1))` }
+      finalCell.numFmt = '0.0'
+      finalCell.font = { bold: true }
+
+      const finalLetter = columnLetter(plan.finalColIndex)
+      const statusCell = row.getCell(plan.statusColIndex + 1)
+      statusCell.value = {
+        formula: `IF(${finalLetter}${excelRow}="","",IF(TRUNC(${ppRawOriginal}+0.0000001,2)>=${passingRawThreshold},"Aprobado","Reprobado"))`,
+      }
+      statusCell.alignment = { horizontal: 'center' }
+      return
     }
+
+    // Curso con examen o PAR/POR: se agrega la columna de Presentación.
+    const ppCell = row.getCell(plan.assessmentPlan.presentacionColIndex + 1)
+    ppCell.value = { formula: `IF(${completenessGuard},"",ROUND(${ppRawOriginal},1))` }
+    ppCell.numFmt = '0.0'
+    ppCell.font = { italic: true }
+
+    const assessmentRef = `${columnLetter(plan.assessmentPlan.assessmentColIndex)}${excelRow}`
+    applyGradeCell(row.getCell(plan.assessmentPlan.assessmentColIndex + 1))
+
+    let ppRawEffective = ppRawOriginal
+    if (plan.assessmentPlan.kind === 'parpor') {
+      const eligibleRefs = plan.assessmentPlan.eligibleScoreColIndexes.map(
+        (idx) => `${columnLetter(idx)}${excelRow}`,
+      )
+      const effectiveByRef = new Map(
+        eligibleRefs.map((ref, i) => [ref, buildParPorEffectiveTerm(eligibleRefs, i, assessmentRef)]),
+      )
+      ppRawEffective = buildPresentacionExpr(
+        plan.evalRanges,
+        scoreRefs,
+        (ref) => effectiveByRef.get(ref) ?? ref,
+      )
+    }
+
+    const buildRound = (expr: string) => `ROUND(${expr},1)`
+    const buildStatus = (expr: string) =>
+      `IF(TRUNC(${expr}+0.0000001,2)>=${passingRawThreshold},"Aprobado","Reprobado")`
+
+    let finalCore: string
+    let statusCore: string
+    if (plan.assessmentPlan.kind === 'examen') {
+      const cfg = plan.assessmentPlan
+      finalCore = buildExamenCore(cfg, ppRawOriginal, assessmentRef, buildRound)
+      statusCore = buildExamenCore(cfg, ppRawOriginal, assessmentRef, buildStatus)
+    } else {
+      const cfg = plan.assessmentPlan
+      finalCore = buildParPorCore(cfg, ppRawOriginal, ppRawEffective, assessmentRef, buildRound)
+      statusCore = buildParPorCore(cfg, ppRawOriginal, ppRawEffective, assessmentRef, buildStatus)
+    }
+
+    const finalCell = row.getCell(plan.finalColIndex + 1)
+    finalCell.value = { formula: `IF(${completenessGuard},"",${finalCore})` }
     finalCell.numFmt = '0.0'
     finalCell.font = { bold: true }
 
-    const finalLetter = columnLetter(finalColIndex)
-    const statusCell = row.getCell(statusColIndex + 1)
-    // El sitio de escala de notas describe el redondeo chileno como:
-    // truncar a la centésima y, si esa centésima es >= 5, subir la décima.
-    // Por eso comparamos aquí con TRUNC (no ROUND) a 2 decimales: usar
-    // ROUND en este paso podría "adelantar" el redondeo con el tercer
-    // decimal y aprobar casos que en realidad no corresponden (ej: 3,947
-    // debe quedar en 3,9 y Reprobado, no en 3,95). El pequeño +0.0000001
-    // sólo evita errores de coma flotante en la suma.
+    const finalLetter = columnLetter(plan.finalColIndex)
+    const statusCell = row.getCell(plan.statusColIndex + 1)
     statusCell.value = {
-      formula: `IF(${finalLetter}${excelRow}="","",IF(TRUNC(${combinedFormula}+0.0000001,2)>=${PASSING_RAW_THRESHOLD},"Aprobado","Reprobado"))`,
+      formula: `IF(${finalLetter}${excelRow}="","",${statusCore})`,
     }
     statusCell.alignment = { horizontal: 'center' }
   })
 
-  applyColumnWidths(sheet, headers, baseColCount, roster.rows)
+  applyColumnWidths(sheet, plan.headers, baseColCount, roster.rows)
 
   if (roster.rows.length > 0) {
-    const statusLetter = columnLetter(statusColIndex)
+    const statusLetter = columnLetter(plan.statusColIndex)
     const lastDataRow = HEADER_ROW + roster.rows.length
     sheet.addConditionalFormatting({
       ref: `${statusLetter}${HEADER_ROW + 1}:${statusLetter}${lastDataRow}`,
@@ -224,7 +260,119 @@ function writeCourseHeader(sheet: ExcelJSType.Worksheet, course: CourseInfo) {
   sheet.getCell('B3').value = course.semestre || '(sin datos)'
 }
 
-function buildColumnPlan(baseHeaders: string[], evaluations: Evaluation[]) {
+/** Construye la expresión (sin ROUND) del promedio de las evaluaciones
+ * regulares: AVERAGE si todas pesan igual, o una suma ponderada si no.
+ * `termFor` permite reemplazar la referencia de una columna puntual por
+ * otra expresión (usado por el PAR/POR). */
+function buildPresentacionExpr(
+  evalRanges: EvalColumnRange[],
+  scoreRefs: string[],
+  termFor?: (plainRef: string) => string,
+): string {
+  const allWeightsEqual =
+    evalRanges.length > 1 &&
+    evalRanges.every(
+      (r) =>
+        Math.abs(
+          (r.evaluation.weight as number) - (evalRanges[0].evaluation.weight as number),
+        ) < WEIGHT_EQUALITY_TOLERANCE,
+    )
+  const terms = scoreRefs.map((ref) => (termFor ? termFor(ref) : ref))
+  if (allWeightsEqual) {
+    return `AVERAGE(${terms.join(',')})`
+  }
+  return evalRanges.map((r, i) => `${terms[i]}*${(r.evaluation.weight as number) / 100}`).join('+')
+}
+
+/** Para una evaluación elegible del PAR/POR, arma la expresión "efectiva":
+ * su propia nota, salvo que sea la primera (de izquierda a derecha) en
+ * tener la nota más baja entre las elegibles Y el PAR/POR tenga nota — en
+ * ese caso, se usa la nota del PAR/POR (aunque sea peor). "Primera" evita
+ * reemplazar dos columnas a la vez cuando hay un empate en la más baja. */
+function buildParPorEffectiveTerm(eligibleRefs: string[], index: number, parPorRef: string): string {
+  const target = eligibleRefs[index]
+  const minExpr = `MIN(${eligibleRefs.join(',')})`
+  const earlier = eligibleRefs.slice(0, index)
+  const isFirstMin =
+    earlier.length === 0
+      ? `${target}=${minExpr}`
+      : `AND(${target}=${minExpr},${earlier.map((ref) => `${ref}<>${minExpr}`).join(',')})`
+  return `IF(${parPorRef}="",${target},IF(${isFirstMin},${parPorRef},${target}))`
+}
+
+/** Árbol de decisión para un curso con Examen: eximición (si se cumple,
+ * ignora el examen aunque tenga nota) > obligatoriedad (bajo cierta
+ * Presentación, hay que esperar la nota del examen) > por defecto, si no
+ * hay regla de obligatoriedad el examen es obligatorio para todos. */
+function buildExamenCore(
+  config: { weight: number | null; exemptionThreshold: number | null; mandatoryThreshold: number | null },
+  ppRaw: string,
+  examRef: string,
+  leaf: (expr: string) => string,
+): string {
+  const w = (config.weight as number) / 100
+  const blend = `${ppRaw}*${1 - w}+${examRef}*${w}`
+
+  const mandatoryBranch =
+    config.mandatoryThreshold != null
+      ? `IF(${ppRaw}<${config.mandatoryThreshold},IF(${examRef}="","",${leaf(blend)}),IF(${examRef}="",${leaf(ppRaw)},${leaf(blend)}))`
+      : `IF(${examRef}="","",${leaf(blend)})`
+
+  if (config.exemptionThreshold != null) {
+    return `IF(${ppRaw}>=${config.exemptionThreshold},${leaf(ppRaw)},${mandatoryBranch})`
+  }
+  return mandatoryBranch
+}
+
+/** Mismo árbol que el examen, pero la "nota combinada" ya es el promedio de
+ * Presentación con la sustitución del PAR/POR aplicada (ppRawEffective), no
+ * una mezcla ponderada con un peso propio. */
+function buildParPorCore(
+  config: { exemptionThreshold: number | null; mandatoryThreshold: number | null },
+  ppRawOriginal: string,
+  ppRawEffective: string,
+  parPorRef: string,
+  leaf: (expr: string) => string,
+): string {
+  const mandatoryBranch =
+    config.mandatoryThreshold != null
+      ? `IF(${ppRawOriginal}<${config.mandatoryThreshold},IF(${parPorRef}="","",${leaf(ppRawEffective)}),${leaf(ppRawEffective)})`
+      : leaf(ppRawEffective)
+
+  if (config.exemptionThreshold != null) {
+    return `IF(${ppRawOriginal}>=${config.exemptionThreshold},${leaf(ppRawOriginal)},${mandatoryBranch})`
+  }
+  return mandatoryBranch
+}
+
+interface ColumnPlan {
+  headers: string[]
+  evalRanges: EvalColumnRange[]
+  finalColIndex: number
+  statusColIndex: number
+  assessmentPlan:
+    | null
+    | ({ kind: 'examen'; presentacionColIndex: number; assessmentColIndex: number } & {
+        weight: number | null
+        exemptionThreshold: number | null
+        mandatoryThreshold: number | null
+      })
+    | ({
+        kind: 'parpor'
+        presentacionColIndex: number
+        assessmentColIndex: number
+        eligibleScoreColIndexes: number[]
+      } & {
+        exemptionThreshold: number | null
+        mandatoryThreshold: number | null
+      })
+}
+
+function buildColumnPlan(
+  baseHeaders: string[],
+  evaluations: Evaluation[],
+  courseSettings: CourseSettings,
+): ColumnPlan {
   const headers: string[] = [...baseHeaders]
   const evalRanges: EvalColumnRange[] = []
 
@@ -244,12 +392,46 @@ function buildColumnPlan(baseHeaders: string[], evaluations: Evaluation[]) {
     }
   })
 
+  const assessment = courseSettings.finalAssessment
+  let assessmentPlan: ColumnPlan['assessmentPlan'] = null
+
+  if (assessment?.type === 'examen') {
+    const presentacionColIndex = headers.length
+    headers.push('Promedio de Presentación')
+    const assessmentColIndex = headers.length
+    headers.push(`Examen (${formatWeightLabel(assessment.weight as number)}%)`)
+    assessmentPlan = {
+      kind: 'examen',
+      presentacionColIndex,
+      assessmentColIndex,
+      weight: assessment.weight,
+      exemptionThreshold: assessment.exemptionThreshold,
+      mandatoryThreshold: assessment.mandatoryThreshold,
+    }
+  } else if (assessment?.type === 'parpor') {
+    const presentacionColIndex = headers.length
+    headers.push('Promedio de Presentación')
+    const assessmentColIndex = headers.length
+    headers.push('PAR/POR')
+    const eligibleScoreColIndexes = evalRanges
+      .filter((r) => assessment.eligibleEvaluationIds.includes(r.evaluation.id))
+      .map((r) => r.scoreColIndex)
+    assessmentPlan = {
+      kind: 'parpor',
+      presentacionColIndex,
+      assessmentColIndex,
+      eligibleScoreColIndexes,
+      exemptionThreshold: assessment.exemptionThreshold,
+      mandatoryThreshold: assessment.mandatoryThreshold,
+    }
+  }
+
   const finalColIndex = headers.length
   headers.push('Promedio Final')
   const statusColIndex = headers.length
   headers.push('Estado')
 
-  return { headers, evalRanges, finalColIndex, statusColIndex }
+  return { headers, evalRanges, finalColIndex, statusColIndex, assessmentPlan }
 }
 
 /** Redondea a como máximo 2 decimales sin dejar ceros de más: 30 -> "30",

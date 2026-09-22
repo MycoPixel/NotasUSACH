@@ -26,6 +26,23 @@ Todo se procesa en el navegador: el archivo nunca se sube a ningún servidor.
    varias notas (por ejemplo "Controles" con 5 controles), actívalo e indica
    cuántas — la planilla creará una columna por cada una más una columna de
    promedio.
+
+   En la misma pantalla puedes definir la **nota mínima para aprobar** (por
+   defecto 4,0) y, si tu curso lo necesita, un **Examen** o un **PAR/POR**:
+   - **Examen**: las evaluaciones de arriba forman el "Promedio de
+     Presentación"; defines sólo el % del examen (ej: 40%) y la
+     Presentación se queda con el resto (60%). Puedes agregar una nota de
+     **eximición** (si la Presentación llega a ese valor, no hace falta
+     rendir el examen — la nota final es la Presentación tal cual, aunque
+     igual se ingrese una nota de examen) y/o una nota de **obligatoriedad**
+     (bajo ese valor es obligación rendir el examen; sin esta regla, el
+     examen es obligatorio para todos por defecto).
+   - **PAR/POR**: eliges qué evaluaciones sin subdivisiones puede reemplazar
+     (nunca una con subdivisiones, como Controles). Cuando se rinde,
+     siempre reemplaza la nota más baja entre las elegidas — aunque el
+     PAR/POR resulte peor. Admite las mismas reglas opcionales de
+     eximición/obligatoriedad, calculadas sobre la Presentación original
+     (sin el reemplazo).
 3. **Genera y descarga el Excel**. Antes de descargar puedes elegir el color
    que destaca el encabezado de la planilla (5 opciones). La planilla final
    trae:
@@ -34,15 +51,19 @@ Todo se procesa en el navegador: el archivo nunca se sube a ningún servidor.
      vacía y lista para llenar directamente en Excel.
    - Validación de rango: cada nota debe estar entre 1,0 y 7,0 (escala
      chilena).
-   - **Promedio Final**: fórmula que pondera cada evaluación según su
-     porcentaje, y que se completa sola apenas se llenan todas las notas de
-     una fila.
-   - **Estado**: "Aprobado" o "Reprobado". La nota de aprobación es 4,0, pero
-     como la escala chilena redondea a la décima, un promedio real de 3,95 o
-     más ya redondea a 4,0 — por eso el umbral que usa la fórmula es 3,95
-     sobre el promedio sin redondear (ver
-     [escaladenotas.cl](https://escaladenotas.cl/)), y no sobre el
-     "Promedio Final" ya redondeado.
+   - **Promedio de Presentación** (sólo si el curso tiene Examen o PAR/POR):
+     el promedio de las evaluaciones de arriba, antes de aplicar el examen o
+     el reemplazo del PAR/POR.
+   - **Promedio Final**: pondera cada evaluación según su porcentaje (o
+     combina Presentación + Examen/PAR-POR, con las reglas de eximición y
+     obligatoriedad que hayas definido), y se completa solo apenas
+     corresponde.
+   - **Estado**: "Aprobado" o "Reprobado", según la nota mínima que hayas
+     definido. Como la escala chilena redondea a la décima, un promedio real
+     0,05 por debajo de esa nota ya redondea hacia arriba y aprueba — por
+     eso la fórmula usa ese umbral sobre el promedio sin redondear (ver
+     [escaladenotas.cl](https://escaladenotas.cl/)), no sobre la nota ya
+     redondeada.
 
 Las notas se ingresan directamente en Excel después de descargar el archivo
 (la app arma la estructura, no es un formulario de ingreso de notas).

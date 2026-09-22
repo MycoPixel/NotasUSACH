@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Evaluation, ParsedRoster } from '../types'
+import type { CourseSettings, Evaluation, ParsedRoster } from '../types'
 import { buildWorkbook } from '../lib/buildWorkbook'
 import { formatNumberEs } from '../lib/numberFormat'
 import { ACCENT_OPTIONS, DEFAULT_ACCENT } from '../lib/palette'
@@ -7,21 +7,43 @@ import { ACCENT_OPTIONS, DEFAULT_ACCENT } from '../lib/palette'
 interface Props {
   roster: ParsedRoster
   evaluations: Evaluation[]
+  courseSettings: CourseSettings
   onBack: () => void
   onRestart: () => void
 }
 
-export default function ExportStep({ roster, evaluations, onBack, onRestart }: Props) {
+function describeAssessment(evaluations: Evaluation[], settings: CourseSettings): string | null {
+  const a = settings.finalAssessment
+  if (!a) return null
+  if (a.type === 'examen') {
+    const parts = [`Examen: ${formatNumberEs(a.weight ?? 0)}% (Presentación: ${formatNumberEs(100 - (a.weight ?? 0))}%)`]
+    if (a.exemptionThreshold != null) parts.push(`eximición desde ${formatNumberEs(a.exemptionThreshold)}`)
+    if (a.mandatoryThreshold != null) parts.push(`obligatorio bajo ${formatNumberEs(a.mandatoryThreshold)}`)
+    return parts.join(' · ')
+  }
+  const names = evaluations
+    .filter((ev) => a.eligibleEvaluationIds.includes(ev.id))
+    .map((ev) => ev.name)
+    .join(', ')
+  const parts = [`PAR/POR: reemplaza la más baja entre ${names || '—'}`]
+  if (a.exemptionThreshold != null) parts.push(`eximición desde ${formatNumberEs(a.exemptionThreshold)}`)
+  if (a.mandatoryThreshold != null) parts.push(`obligatorio bajo ${formatNumberEs(a.mandatoryThreshold)}`)
+  return parts.join(' · ')
+}
+
+export default function ExportStep({ roster, evaluations, courseSettings, onBack, onRestart }: Props) {
   const [generating, setGenerating] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT)
 
+  const assessmentSummary = describeAssessment(evaluations, courseSettings)
+
   async function handleGenerate() {
     setGenerating(true)
     setError(null)
     try {
-      const { blob, fileName } = await buildWorkbook(roster, evaluations, { accentColor })
+      const { blob, fileName } = await buildWorkbook(roster, evaluations, courseSettings, { accentColor })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -81,6 +103,19 @@ export default function ExportStep({ roster, evaluations, onBack, onRestart }: P
         </tbody>
       </table>
 
+      <dl className="summary">
+        <div>
+          <dt>Nota mínima para aprobar</dt>
+          <dd>{formatNumberEs(courseSettings.passingGrade)}</dd>
+        </div>
+        {assessmentSummary && (
+          <div>
+            <dt>{courseSettings.finalAssessment?.type === 'examen' ? 'Examen' : 'PAR/POR'}</dt>
+            <dd>{assessmentSummary}</dd>
+          </div>
+        )}
+      </dl>
+
       <fieldset className="accent-picker">
         <legend>Color para destacar el encabezado</legend>
         <div className="accent-picker__swatches">
@@ -103,8 +138,8 @@ export default function ExportStep({ roster, evaluations, onBack, onRestart }: P
 
       <p className="hint">
         Las columnas de notas quedarán vacías, listas para llenar en Excel (acepta notas de 1,0 a
-        7,0). El promedio de cada evaluación con subdivisiones, el promedio final y el estado
-        (Aprobado / Reprobado) se calculan solos con fórmulas.
+        7,0). El promedio de cada evaluación con subdivisiones, el Promedio de Presentación (si
+        corresponde), el promedio final y el estado se calculan solos con fórmulas.
       </p>
 
       {error && (

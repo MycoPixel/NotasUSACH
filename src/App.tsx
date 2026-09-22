@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Evaluation, ParsedRoster, WizardStep } from './types'
+import type { CourseSettings, Evaluation, ParsedRoster, WizardStep } from './types'
 import StepIndicator from './components/StepIndicator'
 import UploadStep from './components/UploadStep'
 import EvaluationsStep from './components/EvaluationsStep'
@@ -15,10 +15,15 @@ function createEvaluation(): Evaluation {
   }
 }
 
+function createCourseSettings(): CourseSettings {
+  return { passingGrade: 4, finalAssessment: null }
+}
+
 export default function App() {
   const [step, setStep] = useState<WizardStep>('upload')
   const [roster, setRoster] = useState<ParsedRoster | null>(null)
   const [evaluations, setEvaluations] = useState<Evaluation[]>([createEvaluation()])
+  const [courseSettings, setCourseSettings] = useState<CourseSettings>(createCourseSettings())
 
   useEffect(() => {
     // Si el archivo se suelta fuera del recuadro exacto, el navegador por
@@ -41,6 +46,7 @@ export default function App() {
   function handleRestart() {
     setRoster(null)
     setEvaluations([createEvaluation()])
+    setCourseSettings(createCourseSettings())
     setStep('upload')
   }
 
@@ -61,6 +67,8 @@ export default function App() {
             roster={roster}
             evaluations={evaluations}
             onChange={setEvaluations}
+            courseSettings={courseSettings}
+            onSettingsChange={setCourseSettings}
             onBack={() => setStep('upload')}
             onContinue={() => setStep('export')}
           />
@@ -70,6 +78,7 @@ export default function App() {
           <ExportStep
             roster={roster}
             evaluations={evaluations}
+            courseSettings={courseSettings}
             onBack={() => setStep('evaluations')}
             onRestart={handleRestart}
           />
