@@ -79,8 +79,8 @@ export default function FinalAssessmentConfigSection({ evaluations, settings, on
       {settings.finalAssessment?.type === 'examen' && (
         <div className="assessment-detail">
           <p className="hint">
-            El Promedio de Presentación se calcula igual que hoy, con las evaluaciones de arriba.
-            El examen se combina con ese promedio usando el porcentaje que definas aquí; la
+            El Promedio de Presentación se obtiene de las evaluaciones que definiste arriba. El
+            examen se combina con ese promedio usando el porcentaje que definas aquí; la
             Presentación se queda con el resto.
           </p>
           <div className="field-row">

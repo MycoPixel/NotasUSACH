@@ -311,7 +311,7 @@ function buildExamenCore(
   leaf: (expr: string) => string,
 ): string {
   const w = (config.weight as number) / 100
-  const blend = `${ppRaw}*${1 - w}+${examRef}*${w}`
+  const blend = `(${ppRaw})*${1 - w}+${examRef}*${w}`
 
   const mandatoryBranch =
     config.mandatoryThreshold != null
