@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial · Gestión de Notas</title>
+<style>
+:root {
+  --ink: #22252b;
+  --muted: #5d636e;
+  --brand: #6d2020;
+  --brand-soft: #f6efe2;
+  --line: #e2d9c9;
+  --code-bg: #f5f1e8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 48px 24px 96px;
+  background: #faf6ee;
+  color: var(--ink);
+  font: 16px/1.65 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1 {
+  font: 600 40px/1.15 'Newsreader', Georgia, serif;
+  color: #17324d;
+  margin: 0 0 8px;
+}
+h2 {
+  font: 600 28px/1.25 'Newsreader', Georgia, serif;
+  color: #17324d;
+  margin: 56px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+h3 { font: 600 20px/1.35 'Newsreader', Georgia, serif; color: var(--brand); margin: 32px 0 10px; }
+h4 { font: 600 16px/1.4 'IBM Plex Sans', sans-serif; color: var(--ink); margin: 24px 0 8px; }
+p { margin: 0 0 16px; }
+ul, ol { margin: 0 0 16px; padding-left: 24px; }
+li { margin-bottom: 8px; }
+a { color: var(--brand); }
+strong { color: #14304d; }
+code {
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: .9em;
+}
+pre {
+  background: #1f2430;
+  color: #e8e6e1;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 0 0 20px;
+}
+pre code { background: none; border: 0; color: inherit; padding: 0; font-size: 13.5px; }
+blockquote {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  background: var(--brand-soft);
+  border-left: 5px solid var(--brand);
+  border-radius: 0 8px 8px 0;
+}
+blockquote p:last-child { margin-bottom: 0; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 24px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 15px;
+}
+th {
+  background: #17324d;
+  color: #fff;
+  text-align: left;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+figure { margin: 0 0 28px; }
+.wide-wrap {
+  overflow-x: auto;
+  margin: 0 0 28px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+}
+.wide-wrap img { border: 0; border-radius: 0; min-width: 1180px; }
+.wide-wrap::-webkit-scrollbar { height: 10px; }
+.wide-wrap::-webkit-scrollbar-thumb { background: #cfc4ae; border-radius: 6px; }
+.wide-wrap::-webkit-scrollbar-track { background: #f2ede2; border-radius: 6px; }
+img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+footer {
+  max-width: 860px;
+  margin: 64px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+@media (max-width: 620px) {
+  body { padding: 24px 16px 64px; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 23px; }
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Tutorial: Cómo usar la app «Gestión de Notas»</h1>
+<p>Guía completa, paso a paso, con capturas anotadas de la aplicación y del archivo de Excel que genera.</p>
+<blockquote><strong>Importante sobre la privacidad.</strong> Este tutorial usa una <strong>nómina de demostración con datos inventados</strong> (nombres, R.U.N. y correos ficticios, todos con dominio <code>@correo-demo.cl</code>). No se muestra ningún dato real de estudiantes. La app, además, procesa todo dentro del navegador: el archivo nunca sale de tu computador.</blockquote>
+<hr>
+<h2>Antes de empezar</h2>
+<h3>Qué hace la aplicación</h3>
+<p>La app transforma la <strong>nómina de estudiantes que entrega la universidad</strong> (archivo <code>.xls</code> o <code>.xlsx</code>) en una <strong>planilla de notas moderna y bienodotada</strong>: todas las columnas de evaluación ya creadas, listas para que ingreses las notas y para que Excel calcule los promedios solo.</p>
+<h3>Qué necesitas</h3>
+<ul><li>Un navegador web reciente (Chrome, Firefox, Edge o Safari).</li><li>La nómina del curso en su formato original (<code>.xls</code> o <code>.xlsx</code>).</li><li>Microsoft Excel, Google Sheets o LibreOffice para trabajar el archivo final.</li></ul>
+<h3>Cómo abrir la aplicación</h3>
+<p>La aplicación está publicada en línea. <strong>Sólo tienes que abrir este link en el navegador:</strong></p>
+<h3>→ <a href="https://plantilla-usach.vercel.app/">plantilla-usach.vercel.app</a></h3>
+<p>No necesitas instalar nada. Funciona en cualquier navegador moderno, desde el computador o desde el celular.</p>
+<p>Todo lo que harás es arrastrar el archivo y descargar el Excel.</p>
+<hr>
+<h2>El recorrido, en 3 pasos</h2>
+<table><thead><tr><th>Paso</th><th>Qué haces</th><th>Resultado</th></tr></thead><tbody><tr><td>1</td><td>Subes la nómina</td><td>La app lee el curso y la lista de estudiantes</td></tr><tr><td>2</td><td>Defines las evaluaciones</td><td>Quedan fijadas las columnas y su ponderación</td></tr><tr><td>3</td><td>Generas el Excel</td><td>Descargas la planilla lista para llenar notas</td></tr></tbody></table>
+<hr>
+<h1>Paso 1 · Subir la nómina</h1>
+<p><img src="img/paso1-subir-nomina.png" alt="Pantalla inicial de la app"></p>
+<h3>1. Encabezado</h3>
+<p>Sólo informativo: el título de la app y el subtítulo con el flujo general (<em>Nómina → evaluaciones → planilla en Excel</em>). No hay nada que configurar acá.</p>
+<h3>2. Indicador de pasos</h3>
+<p>La barra superior muestra las tres etapas. El paso en el que estás aparece resaltado y los pasos ya completados se marcan con un ✓ verde. Es sólo una referencia visual: <strong>puedes volver atrás en cualquier momento</strong> con el botón <em>Atrás</em> sin perder lo que ya configuraste.</p>
+<h3>3. Recuadro de carga del archivo</h3>
+<p>Aquí es donde entregas la nómina. Tienes dos formas de hacerlo:</p>
+<ul><li><strong>Clic</strong> en el recuadro → se abre el explorador de archivos y eliges la nómina.</li><li><strong>Arrastrar y soltar</strong>: toma el archivo desde tu carpeta y suéltalo encima del recuadro. Mientras lo arrastras, el recuadro se resalta para mostrarte que lo reconoce.</li></ul>
+<p>La app acepta el archivo <strong>tal como lo entrega la universidad</strong>: no necesitas convertirlo, renombrarlo ni abrirlo antes. Al leerlo detecta automáticamente:</p>
+<ul><li>El <strong>nombre y código del curso</strong></li><li>El <strong>profesor o profesoras</strong></li><li>El <strong>semestre</strong></li><li>La <strong>lista de estudiantes</strong>, reconociendo la columna <code>R.U.N</code></li></ul>
+<blockquote><strong>Si aparece un error</strong>, normalmente significa que el archivo no tiene la columna <code>R.U.N</code> (o <code>RUT</code>), que es la que le dice a la app dónde empieza la tabla de estudiantes. Revisa que sea una nómina del mismo formato que usa tu universidad.</blockquote>
+<h3>4. Aviso de privacidad</h3>
+<p>Todo el procesamiento ocurre <strong>dentro de tu navegador</strong>. El archivo no se sube a internet, no se guarda en un servidor y no se envía a ninguna parte. El archivo final se genera también en tu navegador y se descarga directo a tu computador.</p>
+<hr>
+<h2>1.b · Confirmar la nómina</h2>
+<p>Apenas subes el archivo, la app te muestra qué entendió para que lo verifiques antes de seguir.</p>
+<p><img src="img/paso1b-confirmar-nomina.png" alt="Confirmación de la nómina"></p>
+<h3>1. Datos detectados del curso</h3>
+<p>Curso, profesor(es), semestre y cantidad de estudiantes, leídos automáticamente del archivo. <strong>Revisa que coincidan con tu curso</strong>: si algo está mal, es más fácil detectarlo ahora que descubrirlo en la planilla final.</p>
+<h3>2. Elegir qué columnas conservar</h3>
+<p>Cada casilla es una columna de la nómina original, tal como viene. Puedes desmarcar las que no necesites en tu planilla de notas.</p>
+<p>En el ejemplo de la captura se desmarcaron <strong>Ingreso</strong>, <strong>Carrera</strong> y <strong>Correo Electrónico</strong>: son datos que están en la nómina pero que normalmente no hacen falta para registrar notas.</p>
+<p>Recomendación práctica: quédate con lo que uses routinely para identificar al alumno (<em>Nº</em>, <em>R.U.N</em>, <em>PATERNO</em>, <em>MATERNO</em>, <em>NOMBRES</em>) y quita lo demás. La planilla queda más manejable y evita exponer datos que no necesitas.</p>
+<p><strong>Debes dejar al menos una columna marcada</strong>; si las desmarcas todas, la app te avisa y no deja continuar.</p>
+<h3>3. Elegir otro archivo</h3>
+<p>Vuelve al paso 1 para cargar una nómina distinta (otra sección, otro curso). Descarta lo que habías confirmado.</p>
+<h3>4. Continuar</h3>
+<p>Confirma los datos y pasa al paso 2. El botón queda deshabilitado si queda alguna regla sin cumplir (por ejemplo, si no queda ninguna columna marcada).</p>
+<hr>
+<h1>Paso 2 · Definir las evaluaciones</h1>
+<p>Acá decides cómo se estructura el curso: qué evaluaciones hay, cuánto pesa cada una y cómo se calcula la nota final.</p>
+<p><img src="img/paso2-evaluaciones.png" alt="Definición de evaluaciones"></p>
+<h3>1. Nombre de la evaluación</h3>
+<p>El texto que <strong>aparecerá como encabezado de columna</strong> en la planilla final. Usa nombres cortos y claros: <em>Pruebas</em>, <em>Seminarios</em>, <em>Control de Lab</em>, <em>Trabajo en grupo</em>… Evita nombres tan largos que la columna se vea angosta.</p>
+<h3>2. Ponderación (%)</h3>
+<p>El peso de esa evaluación en el promedio final. Acepta coma o punto como separador decimal (<code>33,33</code> y <code>33.33</code> funcionan igual).</p>
+<p><strong>Las ponderaciones de todas las evaluaciones deben sumar 100%.</strong> Si tienes muchas evaluaciones y no sabes cómo repartirlas, el botón <em>Repartir 100% en partes iguales</em> (punto 6) lo hace por ti.</p>
+<h3>3. Eliminar evaluación</h3>
+<p>Borra esa fila. Sólo aparece cuando tienes más de una evaluación en la lista; siempre vas a quedar con al menos una.</p>
+<h3>4. «Se divide en varias notas»</h3>
+<p>Activa esta casilla cuando una evaluación se compone de <strong>varias notas separadas</strong> y sólo su promedio cuenta. Ejemplos típicos:</p>
+<ul><li>3 controles de laboratorio → promediar los 3</li><li>2 seminarios → promediar ambos</li><li>informes semanales → promediar los n informes</li></ul>
+<p>La app <strong>no</strong> te pide el nombre de cada nota: las numera automáticamente (<em>Control 1</em>, <em>Control 2</em>, …) y agrega una columna de promedio.</p>
+<h3>5. Cantidad de notas</h3>
+<p>Indica <strong>cuántas</strong> subdivisiones tendrá esa evaluación. En la captura se puso <code>3</code>, así que la planilla creará las columnas <em>Controles 1</em>, <em>Controles 2</em> y <em>Controles 3</em>, más una columna <code>Promedio Controles (30%)</code>.</p>
+<p>El mínimo es 2 (si es una sola nota, no marques la casilla: usa el paso 2 de esta misma lista).</p>
+<h3>6. Agregar evaluación / Repartir 100% en partes iguales</h3>
+<ul><li><strong>+ Agregar evaluación</strong> crea una fila nueva para otra evaluación del curso.</li><li><strong>Repartir 100% en partes iguales</strong> divide el 100% en el mismo número para todas. Si tienes 3 evaluaciones, las tres quedan con 33,33% cada una.</li></ul>
+<blockquote><strong>Detalle útil:</strong> cuando todas las evaluaciones tienen exactamente el mismo peso, la planilla usa un simple <code>AVERAGE()</code> en vez de una suma ponderada. Se ve más limpio en las fórmulas y es matemáticamente idéntico.</blockquote>
+<h3>7. Control del total</h3>
+<p>Verifica que todo cuadre. En verde con ✓ significa que la suma es 100%. Si no, te dice cuántos porcentajes <strong>faltan</strong> o <strong>sobran</strong>, para que ajustes.</p>
+<p>El botón <em>Continuar</em> permanece deshabilitado hasta que el total llegue a 100%, todas las evaluaciones tengan nombre y la configuración final sea válida.</p>
+<hr>
+<h2>Configuración final del curso</h2>
+<p>Esta sección aparece al final del paso 2 y controla dos cosas: <strong>la nota mínima para aprobar</strong> y <strong>el tipo de evaluación final</strong>.</p>
+<h3>Nota mínima para aprobar</h3>
+<p>El umbral con el que se decidirá si el alumno aprueba. Por defecto es <strong>4,0</strong>, que es lo habitual en Chile. Si tu curso usa otro valor (por ejemplo 3,5 o 5,0), cámbialo acá.</p>
+<blockquote><strong>Sobre el redondeo.</strong> La escala chilena redondea a la décima. Eso significa que un promedio real de <strong>3,95 ya redondea a 4,0 y aprueba</strong>, aunque el número &quot;crudo&quot; esté por debajo del 4,0. La app tiene en cuenta esto y compara contra <code>nota mínima − 0,05</code> sobre el promedio sin redondear, que es como lo hace el manual. Por eso <strong>no عليك el Promedio Final antes de mirar el Estado</strong>: las dos columnas pueden no coincidir en los casos límite, y es lo correcto.</blockquote>
+<hr>
+<h2>Opción A · El curso tiene Examen</h2>
+<p><img src="img/paso2b-examen.png" alt="Configuración del examen"></p>
+<h3>1. Nota mínima para aprobar</h3>
+<p>Lo mismo que en la sección anterior: el umbral de aprobación del curso.</p>
+<h3>2. Tipo de evaluación final</h3>
+<p>Elige entre <strong>Ninguno</strong>, <strong>Examen</strong> y <strong>PAR o POR</strong>. Al marcar <em>Examen</em> se abren los campos de abajo.</p>
+<h3>3. Porcentaje del examen</h3>
+<p>El peso del examen en la nota final. Si pones <strong>40%</strong>, el examen vale el 40% y la Presentación se queda automáticamente con el 60% restante. No necesitas definir las dos.</p>
+<h3>4. Eximición (opcional)</h3>
+<p><code>Eximisión: Presentación mayor o igual a ___</code></p>
+<p>Si la Presentación del alumno alcanza esta nota o más, <strong>queda eximido de rendir el examen</strong>: su nota final es la Presentación tal cual, sin importar qué haya sacado en el examen.</p>
+<p>En la captura se puso <strong>5</strong>, o sea: con Presentación 5,0 o más, el alumno aprueba con Presentación y no le afecta el examen.</p>
+<p>Déjalo vacío si tu curso no tiene eximición.</p>
+<h3>5. Obligatoriedad (opcional)</h3>
+<p><code>Obligatoriedad: Presentación menor a ___</code></p>
+<p>Si la Presentación está <strong>por debajo</strong> de esta nota, es <strong>obligación</strong> rendir el examen. En la captura se puso <strong>3</strong>: un alumno con Presentación menor que 3,0 tiene que rendir el examen sí o sí.</p>
+<p>Sin esta regla, el examen es <strong>obligatorio para todos</strong>.</p>
+<blockquote><strong>Regla de validación:</strong> la nota de obligatoriedad debe ser <strong>menor</strong> que la de eximición (si no, quedarían rangos contradictorios). La app lo avisa y no deja continuar.</blockquote>
+<hr>
+<h2>Opción B · El curso tiene PAR/POR</h2>
+<p><img src="img/paso2c-parpor.png" alt="Configuración del PAR/POR"></p>
+<h3>1. Cómo funciona el PAR/POR</h3>
+<p>El PAR/POR <strong>siempre reemplaza la nota más baja</strong> entre las evaluaciones que tengas marcadas — incluso si tu nota de PAR/POR es <strong>peor</strong> que esa nota. Es el criterio estándar: no se elige &quot;la que más te conviene&quot;, sino que sustituye a la más baja.</p>
+<blockquote>Las evaluaciones <strong>con subdivisiones</strong> (como <em>Controles</em>) <strong>no pueden elegirse</strong>: el PAR/POR reemplaza una nota, no un promedio de varias.</blockquote>
+<h3>2. Evaluaciones elegibles</h3>
+<p>Marca las evaluaciones <strong>sin subdivisiones</strong> que el PAR/POR puede reemplazar. Debes marcar al menos una para poder continuar. En la captura se marcó <em>Pruebas</em> y se dejó <em>Seminarios</em> sin marcar: el PAR/POR reemplazará la nota de Pruebas, no la de Seminarios.</p>
+<h3>3. Eximición (opcional)</h3>
+<p><code>Eximición: Presentación mayor o igual a ___</code></p>
+<p>Si la Presentación alcanza esta nota o más, el PAR/POR <strong>no se considera aunque tenga nota</strong>: la nota final es la Presentación original.</p>
+<h3>4. Obligatoriedad (opcional)</h3>
+<p><code>Obligatoriedad: Presentación menor a ___</code></p>
+<p>Si la Presentación está bajo esta nota, es <strong>obligación</strong> rendir el PAR/POR.</p>
+<p>Sin esta regla, el PAR/POR es <strong>opcional para todos</strong>: si el alumno no lo rinde, queda la nota original sin reemplazo.</p>
+<blockquote>Las reglas de eximición y obligatoriedad del PAR/POR se calculan <strong>sobre la Presentación original</strong>, es decir, antes de aplicar el reemplazo. Es lo que permite que un alumno con buena Presentación se exima aunque el PAR/POR le saliera mal.</blockquote>
+<hr>
+<h1>Paso 3 · Generar y descargar la planilla</h1>
+<p>Antes de descargar, la app te muestra un resumen de todo lo que configuraste.</p>
+<p><img src="img/paso3-generar-excel.png" alt="Pantalla de generación"></p>
+<h3>1. Resumen de lo configurado</h3>
+<p>Una tabla con cada evaluación, su ponderación y si tiene subdivisiones. Úsalo como comprobación final: si algo no es lo que esperabas, haz clic en <em>Atrás</em> y corrígelo antes de descargar.</p>
+<h3>2. Nota mínima y examen</h3>
+<p>Confirma la nota de aprobación y, si elegiste Examen o PAR/POR, el porcentaje y las reglas de eximición y obligatoriedad, en un resumen legible (p. ej. <em>Examen: 40% (Presentación: 60%) · eximición desde 5 · obligatorio bajo 3</em>).</p>
+<h3>3. Color del encabezado</h3>
+<p>Elige el color que destaca la fila de encabezados de la planilla. Hay 5 opciones. Es <strong>puramente estético</strong>: no afecta ningún cálculo, así que elige el que más te guste.</p>
+<h3>4. Qué incluye el archivo</h3>
+<p>Las columnas de notas llegan <strong>vacías, listas para llenar en Excel</strong>, y aceptan notas de 1,0 a 7,0 (la escala chilena). El promedio de cada evaluación con subdivisiones, el Promedio de Presentación (si corresponde), el Promedio Final y el Estado se calculan <strong>solos con fórmulas</strong>.</p>
+<h3>5. Descargar Excel</h3>
+<p>Genera el archivo <code>.xlsx</code> y lo descarga a tu computador. El nombre del archivo se arma solo con el nombre del curso (p. ej. <code>Notas_QUIMICA_GENERAL_(52101-0-E-1)_[2-2026].xlsx</code>).</p>
+<p>Si cambiaste de opinión, puedes volver atrás o simplemente volver a descargar: el botón se puede usar las veces que quieras.</p>
+<hr>
+<h2>La descarga</h2>
+<p><img src="img/paso3b-descarga.png" alt="Descarga confirmada"></p>
+<h3>1. ¡Listo!</h3>
+<p>Aparece el aviso verde de que el archivo se descargó. Guárdalo donde quieras: funciona en <strong>Excel, Google Sheets y LibreOffice</strong>.</p>
+<h3>2. Empezar con otro curso</h3>
+<p>Vuelve al paso 1 para procesar la nómina de otra sección o de otro curso. Útil si tienes varias secciones del mismo ramo.</p>
+<hr>
+<h1>El archivo de Excel resultante</h1>
+<p>Este es el aspecto de la planilla una vez que le ingressas las notas (<strong>en la versión HTML puedes desplazarla horizontalmente</strong> para verla completa):</p>
+<p><div class="wide-wrap" tabindex="0" title="Desplázate horizontalmente para ver la planilla completa"><img src="img/planilla-resultado.png" alt="Planilla de notas con los resultados"></div></p>
+<h3>Columnas que escribes tú 🟠</h3>
+<p>Sólo las <strong>notas</strong>. Cada celda tiene validación: si escribes algo fuera del rango <strong>1,0 a 7,0</strong>, Excel te avisa y no lo acepta. Es la escala chilena.</p>
+<ul><li><strong>1</strong> <code>Pruebas (30%)</code> — la nota de la prueba</li><li><strong>2</strong> <code>Controles 1</code>, <strong>3</strong> <code>Controles 2</code>, <strong>4</strong> <code>Controles 3</code> — una columna por cada control, porque activaste «se divide en varias notas» con 3</li><li><strong>6</strong> <code>Seminarios (40%)</code> — la nota de seminarios</li><li><strong>8</strong> <code>Examen (40%)</code> — la nota del examen. Si el alumno está eximido, <strong>déjala vacía</strong>: da igual, la fórmula lo ignora</li></ul>
+<h3>Columnas que calcula Excel solo 🔵</h3>
+<p><strong>No las escribas ni las borres.</strong> Contienen fórmulas vivas que se recalculan solas a medida que agregas notas:</p>
+<ul><li><strong>5</strong> <code>Promedio Controles (30%)</code> — promedio de los 3 controles</li><li><strong>7</strong> <code>Promedio de Presentación</code> — promedio ponderado de todas las evaluaciones, <strong>antes</strong> de aplicar el examen</li><li><strong>9</strong> <code>Promedio Final</code> — la nota final del curso, ya con el examen y las reglas de eximición y obligatoriedad</li><li><strong>10</strong> <code>Estado</code> — <code>Aprobado</code> o <code>Reprobado</code>, con fondo verde o rojo automático</li></ul>
+<h3>Cómo se calcula el Promedio Final</h3>
+<p>Con la configuración del ejemplo (Pruebas 30% · Controles 30% · Seminarios 40% · Examen 40%, eximición desde 5, obligatorio bajo 3):</p>
+<pre><code>Promedio de Presentación = Pruebas×0,30 + Prom.Controles×0,30 + Seminarios×0,40
+
+Si Presentación ≥ 5        →  Promedio Final = Presentación   (eximido)
+Si Presentación &lt; 3        →  se espera el examen:
+                              sin nota de examen → queda en blanco
+                              con nota           → Presentación×0,60 + Examen×0,40
+En cualquier otro caso     →  sin examen: Promedio Final = Presentación
+                              con examen: Presentación×0,60 + Examen×0,40</code></pre>
+<p>Fíjate en la fila 9 de la planilla de ejemplo: el alumno tiene Presentación 2,3 (obligatoria rinde examen), <strong>no tiene nota de examen</strong>, y por eso su <em>Promedio Final</em> y su <em>Estado</em> quedan <strong>en blanco</strong>. La planilla no te muestra un número inventado: te está avisando que falta información.</p>
+<h3>Detalles de la planilla que te van a servir</h3>
+<ul><li><strong>Panel congelado</strong>: las primeras 3 columnas y las 5 primeras filas quedan fijas. Al desplazarte hacia la derecha en una lista larga de estudiantes, siempre ves el R.U.N. y los nombres, y el encabezado con los nombres de las columnas.</li><li><strong>Filas 1 a 3</strong>: el curso, el profesor y el semestre que se leyeron de la nómina.</li><li><strong>Columnas ajustadas automáticamente</strong> al contenido, para que nada quede cortado.</li><li><strong>Las fórmulas se recalculan solas</strong>: si más tarde cambias una nota, se actualizan el promedio, el estado y los colores.</li></ul>
+<hr>
+<h1>Preguntas frecuentes</h1>
+<p><strong>¿Puedo cambiar algo después de descargar?</strong> Sí. Puedes modificar las notas en Excel con normalidad. Si necesitas cambiar la <em>estructura</em> (agregar una evaluación, cambiar ponderaciones, agregar un examen), vuelve a generar el archivo desde cero: la app no guarda la configuración, así que tendrás que redefinirla.</p>
+<p><strong>¿La app guarda mi configuración?</strong> No. Cada vez que recargas la página empiezas de cero. Las notas que ingreses sí quedan en tu archivo de Excel, que es tu copia personal.</p>
+<p><strong>¿Y mis datos personales?</strong> Todo se procesa en el navegador. El archivo de la nómina nunca se sube a internet. El <code>.xlsx</code> que descargas se genera también en tu navegador.</p>
+<p><strong>¿Sirve para notas de escala distinta?</strong> La app valida el rango <strong>1,0 a 7,0</strong>, que es la escala chilena.</p>
+<p><strong>Me dice que no encuentra la columna R.U.N.</strong> La app busca una columna llamada <code>R.U.N</code> (o <code>RUT</code>) para saber dónde empieza la tabla de estudiantes. Si tu universidad exporta las nóminas con otro formato, hay que ajustar el archivo <code>src/lib/parseRoster.ts</code>.</p>
+<p><strong>¿Cómo saco una columna de la planilla final?</strong> Desmárcala en el paso 1 (confirmar nómina), antes de continuar.</p>
+<p><strong>¿Puedo usar la planilla en Google Sheets?</strong> Sí. Las fórmulas estándar y la validación de rango son compatibles. Al subirla, Google Sheets recalcula todo automáticamente.</p>
+</main>
+<footer>
+  Tutorial de la app <strong>Gestión de Notas</strong> · los datos de ejemplo son
+  ficticios y el archivo se procesa íntegramente en el navegador.
+</footer>
+</body>
+</html>

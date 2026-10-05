@@ -6,6 +6,11 @@ moderna (.xlsx) con todas las columnas de notas ya armadas.
 
 Todo se procesa en el navegador: el archivo nunca se sube a ningún servidor.
 
+## 📖 Tutorial
+
+Guía paso a paso con capturas anotadas de cada opción:
+**[docs/TUTORIAL.md](docs/TUTORIAL.md)**.
+
 ## Qué hace
 
 1. **Sube la nómina** (`.xls` o `.xlsx`, tal como la entrega la universidad).
