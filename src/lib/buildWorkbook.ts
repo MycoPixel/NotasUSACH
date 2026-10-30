@@ -26,6 +26,18 @@ interface EvalColumnRange {
 export interface BuildWorkbookOptions {
   /** Color de énfasis para el encabezado, en hex sin "#" (ej: "6B2737"). */
   accentColor?: string
+  /** Si es true, agrega al libro una pestaña por cada NOTA con el formato
+   * EXACTO que exige la plataforma de notas (columnas RUN, Nombre Alumno y
+   * Nota; sin estilos, sin anchos personalizados): una pestaña por
+   * evaluación simple y una por cada subdivisión cuando la evaluación se
+   * divide en varias notas (ej. dos controles → dos pestañas). */
+  platformSheets?: boolean
+  /** Si es true (por defecto cuando se crean pestañas), la columna Nota de
+   * cada pestaña queda vinculada con una fórmula a la columna de su
+   * evaluación en la hoja "Notas": al escribir la nota ahí, la pestaña se
+   * actualiza sola. Si es false, la Nota parte en 0 fijo para llenarla
+   * directamente en la pestaña. */
+  linkPlatformSheets?: boolean
 }
 
 export interface BuildWorkbookResult {
@@ -227,12 +239,218 @@ export async function buildWorkbook(
     },
   ]
 
+  // Pestañas por nota en formato de la plataforma (opcional): una por
+  // evaluación simple y una por cada subdivisión de las evaluaciones que
+  // se dividen en varias notas (el promedio no genera pestaña).
+  if (options.platformSheets) {
+    const rangeByEvalId = new Map(plan.evalRanges.map((range) => [range.evaluation.id, range]))
+    addPlatformSheets(
+      workbook,
+      roster,
+      evaluations,
+      rangeByEvalId,
+      options.linkPlatformSheets !== false,
+    )
+  }
+
   const arrayBuffer = await workbook.xlsx.writeBuffer()
   const blob = new Blob([arrayBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
 
   return { blob, fileName: buildFileName(roster) }
+}
+
+// ─── Pestañas por evaluación (formato de la plataforma) ─────────────────────
+
+const PLATFORM_HEADER_RUN = 'RUN'
+const PLATFORM_HEADER_NAME = 'Nombre Alumno'
+const PLATFORM_HEADER_GRADE = 'Nota'
+/** La plataforma entrega su plantilla con la nota partiendo en 0 (sin nota
+ * aún), así que las pestañas generadas replican ese valor exactamente. */
+const PLATFORM_EMPTY_GRADE = 0
+
+interface PlatformColumns {
+  runIndex: number
+  paternoIndex: number | null
+  maternoIndex: number | null
+  nombresIndex: number | null
+  /** Columna única con el nombre completo, sólo si la nómina no trae
+   * PATERNO/MATERNO/NOMBRES separados. */
+  singleNameIndex: number | null
+}
+
+/** Normaliza un encabezado para compararlo sin depender de mayúsculas,
+ * espacios o tildes. */
+function normalizeHeader(header: string): string {
+  return String(header ?? '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+/** Localiza en la nómina las columnas necesarias para el formato de la
+ * plataforma: el RUN y el nombre completo (PATERNO MATERNO NOMBRES, o una
+ * columna única con el nombre). Lanza un error entendible si no existen. */
+function findPlatformColumns(headers: string[]): PlatformColumns {
+  let runIndex = -1
+  let paternoIndex: number | null = null
+  let maternoIndex: number | null = null
+  let nombresIndex: number | null = null
+
+  headers.forEach((header, idx) => {
+    const h = normalizeHeader(header)
+    if (runIndex === -1 && (/^R\.?U\.?N\.?$/.test(h) || h === 'RUT')) {
+      runIndex = idx
+    } else if (h === 'PATERNO' || h === 'APELLIDO PATERNO') {
+      paternoIndex = idx
+    } else if (h === 'MATERNO' || h === 'APELLIDO MATERNO') {
+      maternoIndex = idx
+    } else if (h === 'NOMBRES' || h === 'NOMBRE') {
+      nombresIndex = idx
+    }
+  })
+
+  if (runIndex === -1) {
+    throw new Error(
+      'Para crear las pestañas de la plataforma necesitamos la columna R.U.N de la nómina.',
+    )
+  }
+
+  if (paternoIndex != null && maternoIndex != null && nombresIndex != null) {
+    return { runIndex, paternoIndex, maternoIndex, nombresIndex, singleNameIndex: null }
+  }
+
+  // Respaldo: una sola columna con el nombre completo del estudiante.
+  const singleNameIndex = headers.findIndex((header) => {
+    const h = normalizeHeader(header)
+    return h === 'NOMBRE ALUMNO' || h === 'NOMBRE COMPLETO' || h === 'ALUMNO' || h === 'NOMBRE ESTUDIANTE'
+  })
+  if (singleNameIndex !== -1) {
+    return { runIndex, paternoIndex: null, maternoIndex: null, nombresIndex: null, singleNameIndex }
+  }
+
+  throw new Error(
+    'Para crear las pestañas de la plataforma, la nómina debe tener las columnas ' +
+      'PATERNO, MATERNO y NOMBRES (o una columna con el nombre completo del estudiante).',
+  )
+}
+
+/** Deja el RUN como lo espera la plataforma: texto sin puntos ni espacios
+ * ("22.237.062-0" → "22237062-0"). */
+function normalizePlatformRun(value: string | number | null | undefined): string {
+  return String(value ?? '')
+    .replace(/\./g, '')
+    .replace(/\s+/g, '')
+    .trim()
+    .toUpperCase()
+}
+
+function platformCellText(value: string | number | null | undefined): string {
+  if (value == null) return ''
+  return String(value).trim()
+}
+
+/** Arma "PATERNO MATERNO NOMBRES" con un espacio simple entre partes, tal
+ * como aparece en el archivo que entrega la plataforma. */
+function buildPlatformStudentName(row: Array<string | number>, cols: PlatformColumns): string {
+  if (cols.singleNameIndex != null) {
+    return platformCellText(row[cols.singleNameIndex])
+  }
+  return [cols.paternoIndex, cols.maternoIndex, cols.nombresIndex]
+    .map((idx) => (idx != null ? platformCellText(row[idx]) : ''))
+    .filter((part) => part !== '')
+    .join(' ')
+}
+
+/** Sanitiza el nombre de la pestaña: Excel no permite : \\ / ? * [ ] y
+ * limita el nombre a 31 caracteres; además los nombres son únicos e
+ * insensibles a mayúsculas, así que los duplicados reciben un sufijo. */
+function sanitizePlatformSheetName(name: string, usedNames: Set<string>): string {
+  const base = name.replace(/[\\/:*?\[\]]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 31)
+  let candidate = base === '' ? 'Evaluación' : base
+  let counter = 2
+  while (usedNames.has(candidate.toLowerCase())) {
+    const suffix = ` (${counter})`
+    candidate = base.slice(0, 31 - suffix.length).trimEnd() + suffix
+    counter += 1
+  }
+  usedNames.add(candidate.toLowerCase())
+  return candidate
+}
+
+/** Agrega una pestaña por cada NOTA con el formato EXACTO de la plataforma:
+ * fila 1 con los encabezados RUN | Nombre Alumno | Nota y una fila por
+ * estudiante de la nómina, con el RUN como texto sin puntos y la Nota
+ * partiendo en 0. Sin estilos, sin anchos de columna ni validaciones, igual
+ * que el archivo que entrega la plataforma.
+ *
+ * Una evaluación simple genera una pestaña; una evaluación subdividida en
+ * varias notas genera UNA PESTAÑA POR NOTA ("CONTROLES 1", "CONTROLES 2",
+ * …), con el mismo nombre de su columna en la hoja "Notas", y su promedio
+ * no genera pestaña.
+ *
+ * Si `linked` es true, la Nota no es un 0 fijo sino una fórmula vinculada a
+ * la columna de esa nota en la hoja "Notas": mientras no haya nota muestra
+ * 0, igual que la plantilla, y al escribir la nota en la planilla la
+ * pestaña se actualiza sola. La fórmula lleva 0 como resultado en caché,
+ * así los lectores que no recalculan (pandas, openpyxl data_only, etc.)
+ * también leen un número. */
+function addPlatformSheets(
+  workbook: ExcelJSType.Workbook,
+  roster: ParsedRoster,
+  evaluations: Evaluation[],
+  rangeByEvalId: Map<string, EvalColumnRange>,
+  linked: boolean,
+) {
+  const cols = findPlatformColumns(roster.headers)
+  const usedNames = new Set(workbook.worksheets.map((ws) => ws.name.toLowerCase()))
+
+  // Una pestaña por NOTA (no por evaluación): si una evaluación se divide
+  // en varias notas (ej. dos controles), cada nota tiene su propia pestaña
+  // —con el mismo nombre que su columna en "Notas"— vinculada a esa
+  // columna; el promedio de la evaluación no genera pestaña.
+  const targets: Array<{ name: string; colIndex: number }> = []
+  for (const ev of evaluations) {
+    const range = rangeByEvalId.get(ev.id)
+    if (!range) continue
+    if (range.subStart !== undefined && range.subEnd !== undefined) {
+      for (let colIndex = range.subStart; colIndex <= range.subEnd; colIndex++) {
+        const subNumber = colIndex - range.subStart + 1
+        targets.push({ name: `${ev.name.trim()} ${subNumber}`, colIndex })
+      }
+    } else {
+      targets.push({ name: ev.name.trim() || 'Evaluación', colIndex: range.scoreColIndex })
+    }
+  }
+
+  for (const target of targets) {
+    const sheet = workbook.addWorksheet(
+      sanitizePlatformSheetName(target.name || 'Evaluación', usedNames),
+    )
+    sheet.getCell('A1').value = PLATFORM_HEADER_RUN
+    sheet.getCell('B1').value = PLATFORM_HEADER_NAME
+    sheet.getCell('C1').value = PLATFORM_HEADER_GRADE
+
+    const scoreColIndex = target.colIndex
+    roster.rows.forEach((studentRow, rowOffset) => {
+      const row = sheet.getRow(rowOffset + 2)
+      row.getCell(1).value = normalizePlatformRun(studentRow[cols.runIndex])
+      row.getCell(2).value = buildPlatformStudentName(studentRow, cols)
+      if (linked) {
+        // Las filas de datos de "Notas" parten en HEADER_ROW + 1; las de la
+        // pestaña, en la fila 2.
+        const notasRef = `Notas!${columnLetter(scoreColIndex)}${HEADER_ROW + 1 + rowOffset}`
+        row.getCell(3).value = {
+          formula: `IF(${notasRef}="",0,ROUND(${notasRef},1))`,
+          result: PLATFORM_EMPTY_GRADE,
+        }
+      } else {
+        row.getCell(3).value = PLATFORM_EMPTY_GRADE
+      }
+    })
+  }
 }
 
 function applyGradeCell(cell: ExcelJSType.Cell) {

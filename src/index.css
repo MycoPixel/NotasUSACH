@@ -485,6 +485,32 @@ h2 {
   margin: 0 0 1.25rem;
 }
 
+.platform-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.platform-toggle input[type='checkbox'] {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0.2rem 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.platform-toggle + .hint--inline {
+  margin: 0.5rem 0 0 1.65rem;
+}
+
+.platform-toggle--sub {
+  margin: 0.55rem 0 0 1.65rem;
+  font-size: 0.9rem;
+}
+
 .accent-picker legend {
   font-size: 0.78rem;
   text-transform: uppercase;
